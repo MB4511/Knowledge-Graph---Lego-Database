@@ -1,21 +1,21 @@
-## // Add external data from legoadd.csv as a node named information with attributes like num_reviews, star_rating etc
+// Add external data from legoadd.csv as a node named information with attributes like num_reviews, star_rating etc
 
 LOAD CSV WITH HEADERS FROM 'file:///legoadd.csv' as data with data where data.review_difficulty is not null                 
 MERGE(information:information{age:data.ages,num_reviews:data.num_reviews,star_rating:data.star_rating, set_name:data.set_name,review_difficulty:data.review_difficulty})                                                           MERGE (S:Set)-[:details] - > (inf:information)
 
-##  // create relationship between recently created nodes 
+// create relationship between recently created nodes 
 
 MATCH (s:Set), (in:information) 
 WHERE s.name=in.set_name
 CREATE (s)-[:has_details]->(in) 
 RETURN s,in
 
-## // add data of legosets as features with features such as price, image url etc. 
+// add data of legosets as features with features such as price, image url etc. 
 
 LOAD CSV WITH HEADERS FROM 'file:///legosets.csv' as leg                  
 MERGE (features:features{set_num:leg.Item_Number,setname:leg.Name,img_url:leg.Image_URL, price:leg.USD_MSRP })                 MERGE (S:Set)-[:HAS_FEATURES] - > (f:features)
 
-## // create relationship between this data and set node
+// create relationship between this data and set node
 
 MATCH (s:Set), (f:features) 
    WHERE s.set_num=f.set_num
