@@ -2,8 +2,7 @@
 
 ## Lego Project 
 
-In this project, I have dived deep into understanding the connectedness of the large and complex nature of networks between sets and 
-themes in the world of Lego using Graph database technology of Neo4j. 
+In this project, I have dived deep into understanding the connectedness of the large and complex nature of networks between sets and themes in the world of Lego using Graph database technology of Neo4j. 
 
 ## Problem Statement
 
@@ -11,7 +10,7 @@ The problem identified here is that Lego sets have shown decline in sales for pa
 
 ## Solution - An effective recommender system using Neo4j capabilities
 
-My solution is to design a recommender system which is able to provide personalized real time recommendations and help uncover some relevant patterns and insights using Cypher to help improve the sales of Lego sets. 
+My solution is to design a recommender system which is able to provide personalized real time recommendations and help uncover some relevant patterns and insights using Cypher and Graph algorithms to help improve the sales of Lego sets. 
 
 This repository will take you through the queries written in Cypher and the corresponsing output of the business queries which 
 form the framework of my proposed recommendation system 
@@ -23,7 +22,7 @@ Here we have Sets, Themes, Inventory, Invetory Part, Color, PartCategory and Par
 
 ## Additional Data Sources to enhance the solution 
 
-Two additional datasets (CSV files) were incorporated in the graph database using LOAD CSV functionality in cypher to enhance the relevance of a recommender system. The relevant data was merged in the graph database in form of "Features" and "Information" node labels. The queries to make the necessary transformation from text file to graph format can be found in Additional Data Ingestion file. Below is how the updated graph database looks like. 
+Two additional datasets (CSV files) were incorporated in the graph database using LOAD CSV functionality in cypher to enhance the relevance of a recommender system. The relevant data was merged in the graph database in form of "Features" and "Information" node labels. The queries to make the necessary transformation from text file to graph format can be found in https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/Lego-Additional%20Data%20Ingestion.cql.txt. Below is how the updated graph database looks like. 
 
 ![](images-lego/lego-db-2.png)
 
@@ -31,11 +30,11 @@ Two additional datasets (CSV files) were incorporated in the graph database usin
 
 ![](images-lego/LegoGraphXR.png)
 
-The above snap from GraphXR visualization shows how sets have formed a network as they are developed on a theme where these themes themselves have a parent theme attached which really forms the core component for a recommender system to unravel. The visualization capability of Neo4j and graph database in general can be beneficial for some complex pattern identification which I have gone through using some insightful cypher queries in Complex queries/recom system file.
+The above snap from GraphXR visualization shows how sets have formed a network as they are developed on a theme where these themes themselves have a parent/central theme attached which really forms the core component for a recommender system to unravel. The visualization capability of Neo4j and graph database in general can be beneficial for some complex pattern identification which I have gone through using some insightful cypher queries in https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/Lego-Complex%20queries:%20Recom%20System.cql.txt.
 
 ## Some insightful cypher queries for Exploratory Data Analysis
 
-Here are a few insightful cypher queries which capture some deep level relations between the entities in a matter of few milliseconds to a few seconds. For more queries, refer to Lego-Exploration Queries file 
+Here are a few insightful cypher queries which capture some deep level relations between the entities in a matter of few milliseconds to a few seconds. For more queries, refer to https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/Lego-Exploration%20Queries.cql.txt 
 
 ### 1) // Top 3 themes per year
 
@@ -46,7 +45,7 @@ Runtime: 0.2 seconds
 
 It is interesting to note that there has been a shift from traditional building bricks concept in themes like Basic set, supplemental (which were more popular in late 90s and early 2000s) to more digital experience based sets revolving around Batman, Star Wars, Ninjago etc in recent years. 
 
-The output can be accessed using top3themesperyear.csv file
+The output can be accessed using https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/top3themesperyear.csv file
 
 ### 2) // Analyzing themes with Avg Rating and Avg Price
 
@@ -73,7 +72,7 @@ MATCH (Color) < - [:HAS_COLOR]-(InventoryPart)-[:ASSOCIATED_INVENTORY]->(Invento
  
  This query on any relational database format would require 4 joins and aggregation of count which would be time consuming but cypher is able to execute this query in a few seconds by extracting relationship path from colors to themes.
 
-The output can be accessed using distinctcolorspertheme.csv 
+The output can be accessed using https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/distinctcolorspertheme.csv 
 
 ### 4) // Show top 5 colors used per theme
 
@@ -178,7 +177,13 @@ MATCH (S:Set{name:'Puppy Playground'})
  MATCH path=(S)-[*1..2]- > (t:Theme) < - [*1..2] - (rec:Set)                  
 Return *
 
-Returns 223 sets containing Animals, Friends or Jungle Rescue as their theme since these three themes form a heirarchical community.
+![](images-lego/heirarchytheme.png)
+
+
+Returns 223 sets containing Animals, Friends or Jungle Rescue as their theme since these three themes form a heirarchical community. 
+
+But, the first thing that comes to mind here is that 223 recommendations is taking us back to the core of the problem i.e. too many sets per theme. Therefore we need to use this context of heirarchy nature of themes with relevance and filtering out the most important or likely recommendations based on the user. Since we do not have user/customer information on purchases and demographics for now, we can filter using features like customer rating and item-similarity (set similarity in this case) metrics. 
+
 
 ### Recommendation 3- filtering relevance out of the Heirarchical themes on the basis of avg ratings given by users to sets
 
@@ -207,14 +212,14 @@ where Theme.name in['Friends','Animals','Jungle Rescue'] and Set.name=Setname   
 with Comparing, Setname, PartsSimilarity, avgrating order by PartsSimilarity , avgrating desc                                 where PartsSimilarity <= 0.60 and avgrating > 4.0                           
 return *
  
-Runtime: 2 minutes
+Runtime: 2 minutes (YES, it took more than usual but totally worth it!)
 
 ![](images-lego/Recomfinal.png)
 
 
-Finally this query brings everything together, the relevance by incorporating parts similarity between sets and diversity of the themes which are heirarchical in nature and using the ratings we can take well recieved sets into account. 
+Finally this query brings everything together, the relevance by incorporating parts similarity between sets and diversity of the themes which are heirarchical in nature and using the ratings we can take well recieved sets into account. As a result, we get a list of these 7 recommendations in the recommendations column with their accompanying PartSimilarity score and avg rating recieved. 
 
-However, in calculating the similarity between Puppy Playground and all the sets in the community, I decided to go for sets which are not more than 60% similar and have a higher rating than 4. My rationale behind going for a lower similarity score between sets is due to the fact that newness of a lego set would largely depend on the parts it constitutes and personally I believe that offering newness in form of new parts and shaped to play with not only attracts the young kids and teens but also gives an incentive to parents to make a purchasing decision since this recommended lego set is a bit different in terms of parts it contains but relevant since it is related to the theme which the kid wants/likes. 
+However, in calculating the similarity between Puppy Playground and all the sets in the community, I decided to go for sets which are not more than 60% similar and have a higher rating than 4. My rationale behind going for a lower similarity score between sets is due to the fact that newness of a lego set would largely depend on the parts it constitutes and personally I believe that offering newness in form of new/different parts and shapes to play with not only attracts the young kids and teens but also gives an incentive to parents to make a purchasing decision since this recommended lego set is a bit different in terms of parts it contains but relevant since it is related to the theme which the kid wants/likes. 
 
 These threshold values could be tweaked based on the performance of the recommender system over time but this framework can help Lego attract their customers who are missing out on the diverse set of products which are in store for them. 
 
