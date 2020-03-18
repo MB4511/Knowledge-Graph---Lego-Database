@@ -209,8 +209,7 @@ return *
  
 Runtime: 2 minutes
 
-![](images-lego/recom4.png)
-
+![](images-lego/recomfinal.png)
 
 
 Finally this query brings everything together, the relevance by incorporating parts similarity between sets and diversity of the themes which are heirarchical in nature and using the ratings we can take well recieved sets into account. 
