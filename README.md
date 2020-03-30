@@ -6,7 +6,11 @@ In this project, I have dived deep into understanding the connectedness of the l
 
 ## Problem Statement
 
-The problem identified here is that Lego sets have shown decline in sales for past few years limiting the shelf space for newer products. 2018 saw the first decline in sales since a decade highlighting the need for Lego to make a shift in their marketing strategies for a turnaround in coming years. 
+The problem identified here is that Lego sets have shown decline in sales for past few years limiting the shelf space for newer products. 2018 saw the first decline in sales since a decade highlighting the need for Lego to make a shift in their marketing strategies for a turnaround in coming years.
+
+## Possible Solutions
+
+Using the world of graphs, we can offer multiple analytical solutions to drive business decisions at Lego. This ranges from recommender systems to smart inventory management. For this project, I mainly focused on the recommender system solution. 
 
 ## Solution - An effective recommender system using Neo4j capabilities
 
@@ -195,31 +199,47 @@ MATCH (S:Set{name:'Puppy Playground'})
  
  By filtering for the sets which have recieved over 4 star rating from these 3 themes of a community we are left with just 12 sets of recommendation. 
  
- ### Recommendation 4- Leveraging Jaccard similarity between parts of the sets to get a similarity score 
+## Leveraging Jaccard similarity between parts of the sets to get a similarity score 
  
 
-MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s1:Set{name:'Puppy Playground'}) 
-with s1.name as Comparing, toint(pc.id) as PCone, count(*)  as occurenceone  order by occurenceone desc        
-with Comparing, collect(PCone) as partcategories
-MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s2:Set)-[:HAS_THEME]-(t:Theme) where t.name in ['Friends','Animals','Jungle Rescue']
-With Comparing,partcategories, s2.name as Setname, toint(pc.id) as PCtwo, count(*) as occurencetwo order by occurencetwo desc
-With Comparing,partcategories, Setname, collect(PCtwo) as partcattwo
-with Comparing, Setname, 
-algo.similarity.jaccard(partcategories, partcattwo) AS PartsSimilarity order by PartsSimilarity desc
-with Setname, Comparing, PartsSimilarity                                
-MATCH (Set)-[:has_details]-(information), (Set) -[:HAS_THEME]-(Theme)       
-where Theme.name in['Friends','Animals','Jungle Rescue'] and Set.name=Setname                                                 with Comparing,Setname, PartsSimilarity, Set.name as set, avg(tofloat(information.star_rating)) as avgrating order by PartsSimilarity desc                                                                    
-with Comparing, Setname, PartsSimilarity, avgrating order by PartsSimilarity , avgrating desc                                 where PartsSimilarity <= 0.60 and avgrating > 4.0                           
-return *
+MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s1:Set) 
+where s1.name= 'Puppy Playground' 
+with s1.name as setone, toint(pc.id) as PartCategoryIdone, count(*)  as occurenceone  order by occurenceone desc                
+ with setone, collect(PartCategoryIdone) as listofpartcategoryone
+MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s1:Set)-[:HAS_THEME]-(t1:Theme)
+where t1.name in ['Friends','Jungle Rescue','Animals']
+with setone, listofpartcategoryone, s1.name as settwo, toint(pc.id) as PartCategoryIdtwo, count(*)  as occurencetwo  order by occurencetwo desc 
+with setone, listofpartcategoryone, settwo, collect(PartCategoryIdtwo) as listofpartcategorytwo
+Return setone as Set1, settwo as Set2, algo.similarity.jaccard( listofpartcategoryone, listofpartcategorytwo) AS PartSimilarityScore order by PartSimilarityScore desc
+
+The output can be accessed using https://github.com/MB4511/Knowledge-Graph---Lego-Database/blob/master/partsimilarity.csv
  
-Runtime: 2 minutes (YES, it took more than usual but totally worth it!)
+Runtime: 1.9 seconds 
+
+ ###  Final Recommendations - Recommending novel, diverse and relevant sets by incorporating similarity and customer rating
+ 
+ MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s1:Set) 
+where s1.name= 'Puppy Playground' 
+with s1.name as Comparing, toint(pc.id) as PartCategoryIdone, count(*)  as occurenceone  order by occurenceone desc                
+ with Comparing, collect(PartCategoryIdone) as listofpartcategoryone
+MATCH (pc:PartCategory)< -[:HAS_PART_CATEGORY]-(p:Part)< -[:FOR_PART]-(ip:InventoryPart)-[:ASSOCIATED_INVENTORY]-(inv:Inventory)-[:INVENTORY_FOR]- > (s1:Set)-[:HAS_THEME]-(t1:Theme)
+where t1.name in ['Friends','Jungle Rescue','Animals']
+with Comparing, listofpartcategoryone, s1.name as Recommendation, toint(pc.id) as PartCategoryIdtwo, count(*)  as occurencetwo  order by occurencetwo desc 
+with Comparing, listofpartcategoryone, Recommendation, collect(PartCategoryIdtwo) as listofpartcategorytwo
+with Comparing,Recommendation, algo.similarity.jaccard( listofpartcategoryone, listofpartcategorytwo) AS PartSimilarityScore          with Comparing,Recommendation,PartSimilarityScore                            MATCH (S:Set)-[:has_details]-(I:information) where S.name = Recommendation  with Comparing,Recommendation, PartSimilarityScore, avg(tofloat(I.star_rating)) as avgrating                                      where PartSimilarityScore <= 0.60 and avgrating > 4.0                        return * order by avgrating desc
+
+Final Results - Tabular Format
 
 ![](images-lego/Recomfinal.png)
+
+Final Results - Graph Format
+
+![](images-lego/finalgraph.png)
 
 
 Finally this query brings everything together, the relevance by incorporating parts similarity between sets and diversity of the themes which are heirarchical in nature and using the ratings we can take well recieved sets into account. As a result, we get a list of these 7 recommendations in the recommendations column with their accompanying PartSimilarity score and avg rating recieved. 
 
-However, in calculating the similarity between Puppy Playground and all the sets in the community, I decided to go for sets which are not more than 60% similar and have a higher rating than 4. My rationale behind going for a lower similarity score between sets is due to the fact that newness of a lego set would largely depend on the parts it constitutes and personally I believe that offering newness in form of new/different parts and shapes to play with not only attracts the young kids and teens but also gives an incentive to parents to make a purchasing decision since this recommended lego set is a bit different in terms of parts it contains but relevant since it is related to the theme which the kid wants/likes. 
+However, in calculating the similarity between Puppy Playground and all the sets in the community, I decided to go for sets which are not more than 60% similar and have a higher rating than 4. My rationale behind going for a lower similarity score between sets is due to the fact that newness of a lego set would largely depend on the parts it constitutes and personally I believe that offering newness in form of new and different parts and shapes to play with not only attracts the young kids and teens but also gives an incentive to parents to make a purchasing decision since this recommended lego set is a bit different in terms of parts it contains but relevant since it is related to the theme which the kid wants/likes. 
 
 These threshold values could be tweaked based on the performance of the recommender system over time but this framework can help Lego attract their customers who are missing out on the diverse set of products which are in store for them. 
 
