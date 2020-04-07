@@ -1,4 +1,4 @@
-# Knowledge-Graph---Lego-Database
+# Knowledge-Graph---Lego-Database (Recommendation System)
 
 ## Lego Project 
 
